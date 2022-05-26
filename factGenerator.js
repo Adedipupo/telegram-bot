@@ -3,7 +3,6 @@ let Jimp = require('jimp')
 const fs = require('fs')
 let { facts } = require('./facts')
 
-
 async function generateImage(imagePath) {
   let fact = randomFact()
   let photo = await getRandomImage(fact.animal)
@@ -41,3 +40,48 @@ async function getRandomImage(animal) {
     getRandomImage(animal)
   }
 }
+
+
+async function editImage(image, imagePath, fact) {
+  try {
+    let imgURL = image.src.medium
+    let animalImage = await Jimp.read(imgURL).catch(error => console.log('error ', error))
+    let animalImageWidth = animalImage.bitmap.width
+    let animalImageHeight = animalImage.bitmap.height
+    let imgDarkener = await new Jimp(animalImageWidth, animalImageHeight, '#000000')
+    imgDarkener = await imgDarkener.opacity(0.5)
+    animalImage = await animalImage.composite(imgDarkener, 0, 0);
+
+    let posX = animalImageWidth / 15
+    let posY = animalImageHeight / 15
+    let maxWidth = animalImageWidth - (posX * 2)
+    let maxHeight = animalImageHeight - posY
+
+    let font = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE)
+    await animalImage.print(font, posX, posY, {
+      text: fact,
+      alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+      alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+    }, maxWidth, maxHeight)
+
+    await animalImage.writeAsync(imagePath)
+    console.log("Image generated successfully")
+
+  } catch (error) {
+    console.log("error editing image", error)
+  }
+
+}
+
+
+const deleteImage = (imagePath) => {
+  fs.unlink(imagePath, (err) => {
+    if (err) {
+      return
+    }
+    console.log('file deleted')
+  })
+}
+
+
+module.exports = { generateImage, deleteImage }
